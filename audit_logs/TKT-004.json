@@ -1,0 +1,314 @@
+{
+  "version": 1,
+  "ticket_id": "TKT-004",
+  "runs": [
+    {
+      "run_id": "a3f4d4a9-3c52-4c24-b71d-a7e3da781114",
+      "started_at": "2026-04-18T18:40:59.440367+00:00",
+      "steps": [
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `classify_ticket` per policy and ticket state.",
+          "action": "classify_ticket",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.429437+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `classify_ticket` per policy and ticket state.",
+          "action": "classify_ticket",
+          "input": {
+            "ticket_excerpt": "Subject: Wrong size delivered\n\nI ordered size 10 running shoes (ORD-1004) and received size 9. This is unacceptable. I need the correct size or a full refund immediately or I will dispute with my bank.",
+            "customer_email": "david.park@email.com"
+          },
+          "output": {
+            "urgency": "critical",
+            "category": "wrong_item",
+            "resolvable": true,
+            "signals": {
+              "has_order_id": true,
+              "has_customer_email": true
+            },
+            "notes": "rule_based triage"
+          },
+          "timestamp": "2026-04-18T18:40:59.441449+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `search_knowledge_base` per policy and ticket state.",
+          "action": "search_knowledge_base",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.447584+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `search_knowledge_base` per policy and ticket state.",
+          "action": "search_knowledge_base",
+          "input": {
+            "query": "Subject: Wrong size delivered wrong_item critical",
+            "top_k": 6
+          },
+          "output": {
+            "query": "Subject: Wrong size delivered wrong_item critical",
+            "matches": [
+              {
+                "rank": 1,
+                "score": 12.6,
+                "text": "## 5. Exchange Policy\n\n- Exchanges are available for wrong size, wrong colour, or wrong item delivered.\n- Exchange requests are fulfilled subject to stock availability.\n- If the desired item is unavailable, a full refund is offered instead.\n- Exchanges do not extend the original return window."
+              },
+              {
+                "rank": 2,
+                "score": 10.5,
+                "text": "## 8. Common FAQs\n\n**Q: How long does a refund take?**\nA: Refunds are processed within 5–7 business days after approval. The time to appear in the customer's account depends on their bank.\n\n**Q: Can I return a product I've used?**\nA: Generally no. Products must be in original, unused condition. Exceptions apply for defective or damaged items.\n\n**Q: Can I get a refund without returning the item?**\nA: Only in cases of damage on arrival or manufacturing defect confirmed by the support team.\n\n**Q: What if I don't have my order number?**\nA: The agent can look up the order using the customer's registered email address.\n\n**Q: Do you offer free returns?**\nA: Yes, for wrong items delivered and damaged/defective items. Standard returns may incur a return shipping fee depending on the reason.\n\n**Q: Can I exchange instead of getting a refund?**\nA: Yes, subject to stock availability. See the Exchange Policy section above."
+              },
+              {
+                "rank": 3,
+                "score": 8.4,
+                "text": "Wrong Item Delivered\n- If the wrong item is delivered, ShopWave will arrange return pickup and ship the correct item at no cost.\n- If the correct item is out of stock, a full refund is issued.\n- This does not count against the standard return window."
+              },
+              {
+                "rank": 4,
+                "score": 2.1,
+                "text": "Standard Return Window\n- Most products have a **30-day return window** from the date of delivery.\n- Items must be unused, in original condition, and in original packaging.\n- Proof of purchase (order ID) is required for all returns."
+              },
+              {
+                "rank": 5,
+                "score": 2.1,
+                "text": "Category-Specific Return Windows\n- **Electronics accessories** (laptop stands, cables, mounts): 60-day return window.\n- **High-value electronics** (smart watches, tablets, laptops): 15-day return window only.\n- **Footwear**: 30-day return window. Item must be unworn with no outdoor use.\n- **Sports & fitness equipment**: 30-day return window. Non-returnable if used (hygiene policy)."
+              },
+              {
+                "rank": 6,
+                "score": 2.1,
+                "text": "Non-Returnable Items\n- Items registered online after purchase (e.g. Bluetooth devices, smart devices with activation).\n- Perishable goods.\n- Downloadable software or digital content.\n- Items marked as \"Final Sale\" at time of purchase."
+              }
+            ],
+            "match_count": 6
+          },
+          "timestamp": "2026-04-18T18:40:59.453717+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `get_customer` per policy and ticket state.",
+          "action": "get_customer",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.460719+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `get_customer` per policy and ticket state.",
+          "action": "get_customer",
+          "input": {
+            "email": "david.park@email.com"
+          },
+          "output": {
+            "found": true,
+            "customer": {
+              "customer_id": "C004",
+              "name": "David Park",
+              "email": "david.park@email.com",
+              "phone": "+1-206-555-0177",
+              "tier": "standard",
+              "member_since": "2022-01-30",
+              "total_orders": 9,
+              "total_spent": 780.2,
+              "address": {
+                "street": "300 Pine Road",
+                "city": "Seattle",
+                "state": "WA",
+                "zip": "98101"
+              },
+              "notes": "Has raised 1 chargeback dispute in the past — resolved in ShopWave's favour."
+            }
+          },
+          "timestamp": "2026-04-18T18:40:59.466218+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `get_order` per policy and ticket state.",
+          "action": "get_order",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.472299+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `get_order` per policy and ticket state.",
+          "action": "get_order",
+          "input": {
+            "order_id": "ORD-1004"
+          },
+          "output": {
+            "order_id": "ORD-1004",
+            "customer_id": "C004",
+            "product_id": "P002",
+            "product_name": "SwiftRun Pro Running Shoes",
+            "status": "delivered",
+            "amount": 89.99,
+            "delivery_date": "2024-02-24",
+            "return_deadline": "2024-03-25",
+            "refund_status": null,
+            "notes": "Customer requested size exchange via chat but no formal return initiated."
+          },
+          "timestamp": "2026-04-18T18:40:59.490370+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `get_product` per policy and ticket state.",
+          "action": "get_product",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.507012+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `get_product` per policy and ticket state.",
+          "action": "get_product",
+          "input": {
+            "product_id": "P002"
+          },
+          "output": {
+            "product_id": "P002",
+            "name": "SwiftRun Pro Running Shoes",
+            "category": "footwear",
+            "price": 89.99,
+            "warranty_months": 0,
+            "return_window_days": 30,
+            "returnable": true,
+            "notes": "Must be unworn and in original packaging. No return if used outdoors."
+          },
+          "timestamp": "2026-04-18T18:40:59.521949+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `check_refund` per policy and ticket state.",
+          "action": "check_refund",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.533218+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `check_refund` per policy and ticket state.",
+          "action": "check_refund",
+          "input": {
+            "order_id": "ORD-1004",
+            "as_of": "2024-03-15"
+          },
+          "output": {
+            "eligible": true,
+            "reason": "within return window (deadline 2024-03-25)",
+            "return_deadline": "2024-03-25",
+            "order_status": "delivered"
+          },
+          "timestamp": "2026-04-18T18:40:59.536499+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `issue_refund` per policy and ticket state.",
+          "action": "issue_refund",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.539219+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `issue_refund` per policy and ticket state.",
+          "action": "issue_refund",
+          "input": {
+            "order_id": "ORD-1004",
+            "amount": 89.99
+          },
+          "output": {
+            "status": "success",
+            "order_id": "ORD-1004",
+            "refunded_amount": 89.99
+          },
+          "timestamp": "2026-04-18T18:40:59.548158+00:00"
+        },
+        {
+          "phase": "think",
+          "thought": "Pipeline requires `send_reply` per policy and ticket state.",
+          "action": "send_reply",
+          "input": {
+            "stage": "routing"
+          },
+          "output": {
+            "confidence": 0.86
+          },
+          "confidence": 0.86,
+          "timestamp": "2026-04-18T18:40:59.553549+00:00"
+        },
+        {
+          "phase": "act",
+          "thought": "Pipeline requires `send_reply` per policy and ticket state.",
+          "action": "send_reply",
+          "input": {
+            "ticket_id": "TKT-004",
+            "message": "Thanks for contacting ShopWave. Regarding order ORD-1004, we have applied the outcome from our tools above."
+          },
+          "output": {
+            "status": "sent",
+            "ticket_id": "TKT-004",
+            "message": "Thanks for contacting ShopWave. Regarding order ORD-1004, we have applied the outcome from our tools above."
+          },
+          "timestamp": "2026-04-18T18:40:59.563043+00:00"
+        }
+      ],
+      "final_decision": "replied_and_closed",
+      "actions_taken": [
+        "classify_ticket",
+        "search_knowledge_base",
+        "get_customer",
+        "get_order",
+        "get_product",
+        "check_refund",
+        "issue_refund",
+        "send_reply"
+      ],
+      "escalated": false,
+      "finished_at": "2026-04-18T18:40:59.584361+00:00",
+      "extra": {
+        "confidence_last": 0.86,
+        "thought_last": "Pipeline requires `send_reply` per policy and ticket state."
+      }
+    }
+  ]
+}
