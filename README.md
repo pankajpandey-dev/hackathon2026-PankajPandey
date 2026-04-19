@@ -1,74 +1,86 @@
-
 # ShopWave Autonomous Support Agent
 
 ### Agentic AI Hackathon 2026 — Ksolves × En(AI)bling
 
-An autonomous customer support resolution agent built with  **LangGraph + Groq (LLaMA 3.1)** . Resolves ShopWave support tickets end-to-end: classifies, looks up orders, checks refund eligibility, issues refunds, and replies to customers — all without human intervention.
+An autonomous customer support resolution agent built with **LangGraph + Groq (LLaMA 3.1)**. It resolves ShopWave support tickets end-to-end: classifies, looks up orders, checks refund eligibility, issues refunds, and replies to customers — without human intervention. The project includes a **web dashboard** and **REST API** to run batches, inspect audits, and view analytics.
+
+**Live demo:** [https://shopwave-ree9.onrender.com/ui/](https://shopwave-ree9.onrender.com/ui/)
+*(Hosted on [Render](https://render.com); free tier may cold-start after idle time.)*
 
 ---
 
-## Quick Start
+## Quick start (local dashboard + API)
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/<your-username>/hackathon2026-<your-name>.git
 cd hackathon2026-<your-name>
 
-# 2. Install dependencies
-pip install "langgraph>=0.2" "langchain-core>=1.2.2,<3" "langchain-groq>=1.0.0" python-dotenv
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
-# 3. Set your Groq API key
-cp .env.example .env
-# Edit .env and add: GROQ_API_KEY=your_key_here
+cp sample.env .env
+# Edit .env: set GROQ_API_KEY for Groq; optional SHOPWAVE_OFFLINE=1 for rule-based fallbacks without an API key.
 
-# 4. Run the agent (processes all 20 tickets in parallel)
-jupyter nbconvert --to notebook --execute shopwave_agent.ipynb
-
-# OR run directly in Jupyter
-jupyter notebook shopwave_agent.ipynb
+cd app
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-> **Offline mode** (no API key needed): Set `SHOPWAVE_OFFLINE=1` in your `.env`. The agent runs fully with rule-based fallbacks.
+Open **http://127.0.0.1:8000/** (redirects to `/ui/`). Use **Run All Tickets** on the dashboard, or call `POST /run` on the API.
+
+> **Offline mode:** set `SHOPWAVE_OFFLINE=1` in `.env` so LLM steps use deterministic fallbacks (no Groq key required).
 
 ---
 
-## Tech Stack
+## Optional: Jupyter notebook
 
-| Layer         | Technology                                         |
-| ------------- | -------------------------------------------------- |
-| Orchestration | LangGraph 0.2+ (StateGraph, think/act loop)        |
-| LLM           | Groq — LLaMA 3.1 8B Instant                       |
-| Language      | Python 3.11+                                       |
-| Concurrency   | `ThreadPoolExecutor`(parallel ticket processing) |
-| Audit Logging | Per-ticket JSON under `audit_logs/`              |
-| Data          | JSON files under `data/`                         |
-
----
-
-## Project Structure
-
-```
-hackathon2026-<your-name>/
-├── shopwave_agent.ipynb     # Main agent notebook (entry point)
-├── data/
-│   ├── tickets.json         # 20 mock support tickets
-│   ├── orders.json          # Order records
-│   ├── customers.json       # Customer profiles + tiers
-│   ├── products.json        # Product catalogue
-│   └── knowledge-base.md    # Policy & FAQ document
-├── audit_logs/
-│   ├── TKT-001.json         # Per-ticket audit (auto-generated)
-│   ├── ...
-│   └── escalations.json     # All escalation records
-├── architecture.pdf         # Agent architecture diagram
-├── failure_modes.md         # Failure scenarios + responses
-├── README.md                # This file
-└── .env.example             # API key template
+```bash
+jupyter notebook notebooks/agent.ipynb
 ```
 
 ---
 
-## Agent Pipeline
+## Tech stack
+
+| Layer         | Technology                                                               |
+| ------------- | ------------------------------------------------------------------------ |
+| Orchestration | LangGraph 0.2+ (StateGraph, think/act loop)                              |
+| LLM           | Groq — LLaMA 3.1 8B Instant                                             |
+| API           | FastAPI + Uvicorn                                                        |
+| UI            | Static dashboard under `/ui` (tickets, audits, escalations, analytics) |
+| Language      | Python 3.11+                                                             |
+| Concurrency   | Parallel ticket runs (`ThreadPoolExecutor` / background jobs)          |
+| Audit         | Per-ticket JSON under `audit_logs/` (generated at runtime)             |
+| Data          | JSON +`knowledge-base.md` under `data/`                              |
+
+---
+
+## Project structure
+
+```
+hackathon2026-Pankajpandey/
+├── app/                     # FastAPI app (PYTHONPATH = app/ when using Dockerfile)
+│   ├── main.py              # App entry, mounts /ui static UI
+│   ├── api/                 # REST routes (/run, /status, /tickets, …)
+│   ├── agents/              # LangGraph pipeline, tools, LLM
+│   ├── services/
+│   └── core/config.py       # Repo paths (data/, audit_logs/)
+├── frontend/static/         # Dashboard HTML/CSS/JS
+├── data/                    # tickets, orders, customers, products, knowledge-base.md
+├── audit_logs/              # Generated audits (gitignored); created empty in Docker
+├── notebooks/agent.ipynb    # Notebook exploration (optional)
+├── Dockerfile               # Production image (Uvicorn :8000)
+├── render.yaml              # Render Blueprint (optional one-click deploy)
+├── requirements.txt
+├── sample.env               # Copy to .env for local secrets
+├── architecture.pdf
+├── failure_modes.md
+└── README.md
+```
+
+---
+
+## Agent pipeline
 
 Each ticket flows through this reasoning chain (minimum 7 tool calls):
 
@@ -82,7 +94,7 @@ Every step is logged with: reasoning thought, confidence score, tool input, tool
 
 ---
 
-## Tool Inventory
+## Tool inventory
 
 | Tool                         | Type            | Description                               |
 | ---------------------------- | --------------- | ----------------------------------------- |
@@ -98,7 +110,7 @@ Every step is logged with: reasoning thought, confidence score, tool input, tool
 
 ---
 
-## Fault Tolerance
+## Fault tolerance
 
 * **12% simulated failure rate** on every tool call (configurable via `SHOPWAVE_TOOL_FAILURE_RATE`)
 * **Exponential backoff** retry: up to 3 retries, base delay 0.15s, doubles each attempt
@@ -108,7 +120,7 @@ Every step is logged with: reasoning thought, confidence score, tool input, tool
 
 ---
 
-## Escalation Triggers
+## Escalation triggers
 
 | Trigger                       | Priority   |
 | ----------------------------- | ---------- |
@@ -121,7 +133,7 @@ Every step is logged with: reasoning thought, confidence score, tool input, tool
 
 ## Configuration
 
-All tuneable via `.env`:
+Tune via `.env` (start from `sample.env`):
 
 ```env
 GROQ_API_KEY=your_groq_key
@@ -130,9 +142,17 @@ SHOPWAVE_TOOL_FAILURE_RATE=0.12     # Simulated chaos rate (0–1)
 SHOPWAVE_OFFLINE=                   # Set to 1 for offline/no-LLM mode
 ```
 
+On **Render**, set `GROQ_API_KEY` (and any other variables) in the service **Environment** tab. The app reads process environment variables; a `.env` file is not required in production.
+
 ---
 
-## Audit Output
+## Deploy (Render)
+
+This repo ships a **Dockerfile** and optional **`render.yaml`** Blueprint. Connect the GitHub repository in the [Render Dashboard](https://dashboard.render.com), deploy as a **Web Service** with Docker, and assign environment variables there. The container listens on port **8000**; Render maps it to HTTPS automatically.
+
+---
+
+## Audit output
 
 Every ticket produces `audit_logs/<ticket_id>.json`:
 
@@ -162,20 +182,24 @@ Every ticket produces `audit_logs/<ticket_id>.json`:
 
 ---
 
-## Running All 20 Tickets
+## Running all 20 tickets
+
+* **Dashboard:** open `/ui/` and use **Run All Tickets**.
+* **API:** `POST /run` starts the same parallel batch (OpenAPI docs at `/docs` when running locally).
+
+From Python (e.g. notebook with `app` on `PYTHONPATH`, or `cd app` first):
 
 ```python
-# Parallel (recommended)
-all_results = run_all_tickets(parallel=True, max_workers=6)
+from agents.runner import run_all_tickets
 
-# Sequential
-all_results = run_all_tickets(parallel=False)
+all_results = run_all_tickets(parallel=True, max_workers=6)
+# all_results = run_all_tickets(parallel=False)
 ```
 
 ---
 
 ## Notes
 
-* No API keys are hardcoded anywhere. All secrets are loaded from `.env` via `python-dotenv`.
+* No API keys are committed. Use `.env` locally (from `sample.env`) and the host’s environment in production.
 * The agent degrades gracefully when Groq is unavailable — rule-based fallbacks keep it running.
 * `issue_refund` is only called after `check_refund_eligibility` confirms `eligible: True`.
