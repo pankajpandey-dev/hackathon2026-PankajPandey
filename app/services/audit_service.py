@@ -16,6 +16,7 @@ from core.config import (
 )
 from schemas.analytics import AnalyticsResponse, CategoryCount, ConfidenceBin, Outcomes
 from schemas.audit_api import TicketAuditDocument
+from schemas.audit_clear import ClearAuditLogsResponse
 from schemas.escalations import EscalationsDocument
 from schemas.tickets import TicketSummary, TicketsResponse
 
@@ -192,3 +193,20 @@ def build_analytics() -> dict[str, Any]:
         confidence_values=confidences,
     )
     return out.dict()
+
+
+def clear_audit_log_files() -> dict[str, Any]:
+    """Remove all `.json` files directly under `audit_logs/` (ticket audits + escalations)."""
+    from utils.threading import AUDIT_IO_LOCK
+
+    deleted: list[str] = []
+    with AUDIT_IO_LOCK:
+        if not AUDIT_LOG_DIR.is_dir():
+            AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            return ClearAuditLogsResponse(deleted_count=0, filenames=[]).dict()
+        for p in sorted(AUDIT_LOG_DIR.iterdir()):
+            if p.is_file() and p.suffix.lower() == ".json":
+                name = p.name
+                p.unlink(missing_ok=True)
+                deleted.append(name)
+    return ClearAuditLogsResponse(deleted_count=len(deleted), filenames=deleted).dict()

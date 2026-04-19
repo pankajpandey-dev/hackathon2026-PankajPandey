@@ -52,6 +52,11 @@ def start_run_all_parallel(*, max_workers: int = 6) -> dict[str, Any]:
     return RunStartResponse(started=True, total=len(ids)).dict()
 
 
+def is_batch_run_active() -> bool:
+    with _lock:
+        return bool(_state["running"])
+
+
 def get_status_payload() -> dict[str, Any]:
     counts = aggregate_status_counts()
     n = len(all_ticket_ids_ordered())
