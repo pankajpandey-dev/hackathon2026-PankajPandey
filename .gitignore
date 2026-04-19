@@ -219,3 +219,9 @@ __marimo__/
 
 # ShopWave agent local audit output
 audit_log.json
+*audit_logs
+audit_log/
+*audit_logs/
+
+audit_logs/
+
