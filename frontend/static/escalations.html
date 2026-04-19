@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Escalations — ShopWave</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/assets/css/style.css?v=3" />
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="top">
+        <strong>ShopWave</strong>
+        <a href="/ui/">Dashboard</a>
+        <a href="/ui/tickets.html">Tickets</a>
+        <a href="/ui/escalations.html" class="active">Escalations</a>
+        <a href="/ui/#analytics">Analytics</a>
+      </nav>
+
+      <h1>Escalations</h1>
+      <p class="lead">Records from <code>audit_logs/escalations.json</code>.</p>
+
+      <div id="err" class="status-line error" style="display: none"></div>
+      <div id="table-host"></div>
+    </div>
+
+    <script src="/ui/assets/js/common.js"></script>
+    <script>
+      (function () {
+        const host = document.getElementById("table-host");
+        const err = document.getElementById("err");
+
+        function esc(s) {
+          const d = document.createElement("div");
+          d.textContent = s == null ? "" : String(s);
+          return d.innerHTML;
+        }
+
+        function priorityClass(p) {
+          const x = (p || "").toLowerCase();
+          if (x === "urgent") return "badge priority-urgent";
+          if (x === "high") return "badge priority-high";
+          if (x === "medium") return "badge priority-medium";
+          if (x === "low") return "badge priority-low";
+          return "badge";
+        }
+
+        function parseReason(summary) {
+          if (!summary) return "";
+          const m = String(summary).match(/reason=([^;]+)/);
+          return m ? m[1].trim() : "";
+        }
+
+        fetchJson("/escalations")
+          .then(function (data) {
+            const recs = data.records || [];
+            if (!recs.length) {
+              host.innerHTML = '<p class="empty">No escalation records.</p>';
+              return;
+            }
+            const table = document.createElement("table");
+            table.className = "data";
+            table.innerHTML =
+              "<thead><tr>" +
+              "<th>Ticket</th><th>Priority</th><th>Summary</th><th>Reason</th><th>Timestamp</th>" +
+              "</tr></thead>";
+            const tb = document.createElement("tbody");
+            recs.forEach(function (r) {
+              const tr = document.createElement("tr");
+              tr.addEventListener("click", function () {
+                window.location.href =
+                  "/ui/audit.html?ticket=" + encodeURIComponent(r.ticket_id || "");
+              });
+              const reason = r.reason || parseReason(r.summary);
+              tr.innerHTML =
+                "<td><strong>" +
+                esc(r.ticket_id) +
+                "</strong></td>" +
+                "<td><span class='" +
+                priorityClass(r.priority) +
+                "'>" +
+                esc(r.priority) +
+                "</span></td>" +
+                "<td title='" +
+                esc(r.summary || "").replace(/'/g, "&#39;") +
+                "'>" +
+                esc(
+                  (r.summary || "").length > 120
+                    ? (r.summary || "").slice(0, 120) + "…"
+                    : r.summary || ""
+                ) +
+                "</td>" +
+                "<td>" +
+                esc(reason) +
+                "</td>" +
+                "<td>" +
+                esc(r.created_at) +
+                "</td>";
+              tb.appendChild(tr);
+            });
+            table.appendChild(tb);
+            host.appendChild(table);
+          })
+          .catch(function (e) {
+            err.style.display = "block";
+            err.textContent = String(e.message || e);
+          });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tickets — ShopWave</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/assets/css/style.css?v=3" />
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="top">
+        <strong>ShopWave</strong>
+        <a href="/ui/">Dashboard</a>
+        <a href="/ui/tickets.html" class="active">Tickets</a>
+        <a href="/ui/escalations.html">Escalations</a>
+        <a href="/ui/#analytics">Analytics</a>
+      </nav>
+
+      <h1>All tickets</h1>
+      <p class="lead">Latest result per ticket from audit logs. Click a row for the audit trail.</p>
+
+      <div id="err" class="status-line error" style="display: none"></div>
+      <div id="table-host"></div>
+    </div>
+
+    <script src="/ui/assets/js/common.js"></script>
+    <script>
+      (function () {
+        const host = document.getElementById("table-host");
+        const err = document.getElementById("err");
+
+        function esc(s) {
+          const d = document.createElement("div");
+          d.textContent = s == null ? "" : String(s);
+          return d.innerHTML;
+        }
+
+        function goAudit(ticketId) {
+          window.location.href = "/ui/audit.html?ticket=" + encodeURIComponent(ticketId);
+        }
+
+        fetchJson("/tickets")
+          .then(function (data) {
+            const rows = data.tickets || [];
+            const table = document.createElement("table");
+            table.className = "data";
+            table.innerHTML =
+              "<thead><tr>" +
+              "<th>ID</th><th>Category</th><th>Urgency</th><th>Final decision</th><th>Escalated</th><th>Actions</th>" +
+              "</tr></thead>";
+            const tb = document.createElement("tbody");
+            rows.forEach(function (t) {
+              const tr = document.createElement("tr");
+              tr.addEventListener("click", function () {
+                goAudit(t.ticket_id);
+              });
+              const actions = Array.isArray(t.actions_taken) ? t.actions_taken.join(", ") : "";
+              const escBadge =
+                t.escalated === true
+                  ? '<span class="badge yes">Yes</span>'
+                  : t.escalated === false
+                    ? '<span class="badge no">No</span>'
+                    : "—";
+              tr.innerHTML =
+                "<td><strong>" +
+                esc(t.ticket_id) +
+                "</strong></td>" +
+                "<td>" +
+                esc(t.category) +
+                "</td>" +
+                "<td>" +
+                esc(t.urgency) +
+                "</td>" +
+                "<td>" +
+                esc(t.final_decision) +
+                "</td>" +
+                "<td>" +
+                escBadge +
+                "</td>" +
+                "<td title='" +
+                esc(actions).replace(/'/g, "&#39;") +
+                "'>" +
+                esc(actions.length > 80 ? actions.slice(0, 80) + "…" : actions) +
+                "</td>";
+              tb.appendChild(tr);
+            });
+            table.appendChild(tb);
+            host.appendChild(table);
+          })
+          .catch(function (e) {
+            err.style.display = "block";
+            err.textContent = String(e.message || e);
+          });
+      })();
+    </script>
+  </body>
+</html>

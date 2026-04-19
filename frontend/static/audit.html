@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audit — ShopWave</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/assets/css/style.css?v=3" />
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="top">
+        <strong>ShopWave</strong>
+        <a href="/ui/">Dashboard</a>
+        <a href="/ui/tickets.html">Tickets</a>
+        <a href="/ui/escalations.html">Escalations</a>
+        <a href="/ui/#analytics">Analytics</a>
+      </nav>
+
+      <h1>Audit log</h1>
+      <p class="lead" id="subtitle">Loading…</p>
+
+      <p><a href="/ui/tickets.html">← Back to tickets</a></p>
+
+      <div id="err" class="status-line error" style="display: none"></div>
+      <div id="content"></div>
+    </div>
+
+    <script src="/ui/assets/js/common.js"></script>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const ticketId = params.get("ticket") || params.get("id") || "";
+        const content = document.getElementById("content");
+        const sub = document.getElementById("subtitle");
+        const err = document.getElementById("err");
+
+        if (!ticketId) {
+          sub.textContent = "Pass ?ticket=TKT-001 (open from the tickets table).";
+          return;
+        }
+
+        sub.textContent = "Ticket " + ticketId;
+
+        function phaseClass(phase) {
+          const p = (phase || "").toLowerCase();
+          if (p === "think") return "think";
+          if (p === "act") return "act";
+          if (p === "error") return "error";
+          return "";
+        }
+
+        fetchJson("/audit/" + encodeURIComponent(ticketId))
+          .then(function (data) {
+            const runs = data.runs || [];
+            if (!runs.length) {
+              content.innerHTML = '<p class="empty">No runs recorded yet.</p>';
+              return;
+            }
+            runs.forEach(function (run, ri) {
+              const section = document.createElement("div");
+              section.className = "audit-run";
+              const h = document.createElement("h2");
+              h.textContent =
+                "Run " +
+                (ri + 1) +
+                " — " +
+                (run.run_id || "") +
+                " — started " +
+                (run.started_at || "");
+              section.appendChild(h);
+
+              (run.steps || []).forEach(function (step) {
+                const pc = phaseClass(step.phase);
+                const div = document.createElement("div");
+                div.className = "step " + pc;
+                const meta = document.createElement("div");
+                meta.className = "meta";
+                meta.textContent =
+                  (step.phase || "?") +
+                  " · " +
+                  (step.action || "") +
+                  " · conf " +
+                  (step.confidence != null ? step.confidence : "—") +
+                  " · " +
+                  (step.timestamp || "");
+                div.appendChild(meta);
+                if (step.thought) {
+                  const t = document.createElement("div");
+                  t.textContent = step.thought;
+                  div.appendChild(t);
+                }
+                if (step.input != null) {
+                  const pre = document.createElement("pre");
+                  pre.textContent = "Input:\n" + formatJson(step.input);
+                  div.appendChild(pre);
+                }
+                if (step.output != null) {
+                  const pre = document.createElement("pre");
+                  pre.textContent = "Output:\n" + formatJson(step.output);
+                  div.appendChild(pre);
+                }
+                section.appendChild(div);
+              });
+
+              const foot = document.createElement("div");
+              foot.className = "meta";
+              foot.style.marginTop = "0.75rem";
+              foot.textContent =
+                "Final: " +
+                (run.final_decision || "") +
+                " · escalated: " +
+                (run.escalated ? "yes" : "no") +
+                " · finished " +
+                (run.finished_at || "");
+              section.appendChild(foot);
+
+              content.appendChild(section);
+            });
+          })
+          .catch(function (e) {
+            err.style.display = "block";
+            err.textContent = String(e.message || e);
+          });
+      })();
+    </script>
+  </body>
+</html>

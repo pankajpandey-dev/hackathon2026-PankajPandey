@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard — ShopWave Tickets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/assets/css/style.css?v=3" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="layout">
+      <nav class="top">
+        <strong>ShopWave</strong>
+        <a href="/ui/" class="active">Dashboard</a>
+        <a href="/ui/tickets.html">Tickets</a>
+        <a href="/ui/escalations.html">Escalations</a>
+        <a href="#analytics">Analytics</a>
+      </nav>
+
+      <h1>Dashboard</h1>
+      <p class="lead">Run the agent on all 20 tickets, monitor progress, and explore data analytics below.</p>
+
+      <div class="actions">
+        <button type="button" class="btn-run" id="btn-run">Run All Tickets</button>
+        <button type="button" class="btn-delete" id="btn-delete-logs" title="Removes all JSON files under audit_logs/">
+          Delete logs
+        </button>
+        <span class="status-line" id="run-hint"></span>
+      </div>
+      <p class="status-line success" id="ok-line" style="display: none"></p>
+
+      <div class="grid-cards">
+        <div class="card">
+          <div class="label">Total tickets</div>
+          <div class="value" id="v-total">—</div>
+        </div>
+        <div class="card resolved">
+          <div class="label">Resolved</div>
+          <div class="value" id="v-resolved">—</div>
+        </div>
+        <div class="card escalated">
+          <div class="label">Escalated</div>
+          <div class="value" id="v-escalated">—</div>
+        </div>
+        <div class="card failed">
+          <div class="label">Failed</div>
+          <div class="value" id="v-failed">—</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap hidden" id="progress-wrap">
+        <div class="status-line" id="progress-text">Processing…</div>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+      </div>
+      <div class="status-line error" id="err-line" style="display: none"></div>
+
+      <section class="dashboard-analytics" id="analytics" aria-labelledby="analytics-heading">
+        <div class="dashboard-analytics-head">
+          <h2 id="analytics-heading">Data analytics</h2>
+          <p class="analytics-sub">
+          </p>
+          <p id="analytics-avg-confidence" class="analytics-kpi" style="display: none"></p>
+          <p id="analytics-empty" class="empty analytics-empty-msg" style="display: none"></p>
+          <p id="analytics-err" class="status-line error" style="display: none"></p>
+        </div>
+
+        <div class="chart-grid-dashboard">
+          <article class="chart-panel chart-span-2">
+            <h3>Ticket categories</h3>
+            <p class="chart-desc">Distribution of <strong>classify_ticket</strong> categories across tickets.</p>
+            <div class="chart-canvas-wrap chart-canvas-wrap--wide">
+              <canvas id="chart-dash-categories" aria-label="Categories bar chart"></canvas>
+            </div>
+          </article>
+          <article class="chart-panel">
+            <h3>Outcome mix</h3>
+            <p class="chart-desc">Resolved vs escalated (latest run per ticket).</p>
+            <div class="chart-canvas-wrap chart-canvas-wrap--donut">
+              <canvas id="chart-dash-outcomes" aria-label="Outcomes doughnut chart"></canvas>
+            </div>
+          </article>
+          <article class="chart-panel">
+            <h3>Confidence bands</h3>
+            <p class="chart-desc">How often think-steps fall into each confidence range.</p>
+            <div class="chart-canvas-wrap chart-canvas-wrap--tall">
+              <canvas id="chart-dash-confidence" aria-label="Confidence histogram"></canvas>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <script src="/ui/assets/js/common.js"></script>
+    <script src="/ui/assets/js/dashboard-analytics.js?v=1"></script>
+    <script>
+      (function () {
+        const btn = document.getElementById("btn-run");
+        const hint = document.getElementById("run-hint");
+        const wrap = document.getElementById("progress-wrap");
+        const fill = document.getElementById("progress-fill");
+        const ptext = document.getElementById("progress-text");
+        const errLine = document.getElementById("err-line");
+        const okLine = document.getElementById("ok-line");
+        const btnDelete = document.getElementById("btn-delete-logs");
+        let pollTimer = null;
+        let lastRunning = false;
+        let firstRefresh = true;
+
+        function setCards(s) {
+          document.getElementById("v-total").textContent = s.total;
+          document.getElementById("v-resolved").textContent = s.resolved;
+          document.getElementById("v-escalated").textContent = s.escalated;
+          document.getElementById("v-failed").textContent = s.failed;
+        }
+
+        function applyStatus(s) {
+          setCards(s);
+          if (s.running) {
+            wrap.classList.remove("hidden");
+            btn.disabled = true;
+            if (btnDelete) btnDelete.disabled = true;
+            hint.textContent = "Run in progress…";
+            const pct = s.total ? Math.min(100, Math.round((s.processed / s.total) * 100)) : 0;
+            fill.style.width = pct + "%";
+            ptext.textContent =
+              "Processed " + s.processed + " / " + s.total + " (" + pct + "%)";
+          } else {
+            wrap.classList.add("hidden");
+            btn.disabled = false;
+            if (btnDelete) btnDelete.disabled = false;
+            hint.textContent = "";
+            fill.style.width = "0%";
+          }
+          if (s.error) {
+            errLine.style.display = "block";
+            errLine.textContent = "Error: " + s.error;
+          } else {
+            errLine.style.display = "none";
+          }
+        }
+
+        async function refresh() {
+          try {
+            const s = await fetchJson("/status");
+            const finishedRun = lastRunning && !s.running;
+            lastRunning = s.running;
+            applyStatus(s);
+            if (!s.running && pollTimer) {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+            if (firstRefresh || finishedRun) {
+              firstRefresh = false;
+              if (typeof loadDashboardAnalytics === "function") {
+                loadDashboardAnalytics();
+              }
+            }
+          } catch (e) {
+            errLine.style.display = "block";
+            errLine.textContent = String(e.message || e);
+          }
+        }
+
+        btn.addEventListener("click", async function () {
+          okLine.style.display = "none";
+          errLine.style.display = "none";
+          try {
+            const res = await fetchJson("/run", { method: "POST" });
+            if (!res.started) {
+              hint.textContent = res.message || "Could not start.";
+              return;
+            }
+            lastRunning = true;
+            await refresh();
+            if (!pollTimer) pollTimer = setInterval(refresh, 1000);
+          } catch (e) {
+            errLine.style.display = "block";
+            errLine.textContent = String(e.message || e);
+          }
+        });
+
+        btnDelete.addEventListener("click", async function () {
+          okLine.style.display = "none";
+          errLine.style.display = "none";
+          if (
+            !confirm(
+              "Delete all JSON files in the audit_logs folder (ticket audits and escalations)? This cannot be undone."
+            )
+          ) {
+            return;
+          }
+          try {
+            const s = await fetchJson("/status");
+            if (s.running) {
+              errLine.style.display = "block";
+              errLine.textContent = "Wait for the current run to finish before deleting logs.";
+              return;
+            }
+            const res = await fetchJson("/audit-logs", { method: "DELETE" });
+            okLine.style.display = "block";
+            okLine.textContent ="Done"
+            await refresh();
+            if (typeof loadDashboardAnalytics === "function") {
+              loadDashboardAnalytics();
+            }
+          } catch (e) {
+            errLine.style.display = "block";
+            errLine.textContent = String(e.message || e);
+          }
+        });
+
+        refresh();
+
+        if (window.location.hash === "#analytics") {
+          requestAnimationFrame(function () {
+            var el = document.getElementById("analytics");
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
