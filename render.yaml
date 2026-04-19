@@ -1,0 +1,17 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Dashboard → New → Blueprint → connect this repo (detects render.yaml).
+
+services:
+  - type: web
+    name: shopwave
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      # Optional: add your key in the Render dashboard for full Groq LLM behavior.
+      # Without it, the agent still runs using offline-style LLM fallbacks.
+      - key: GROQ_API_KEY
+        sync: false
