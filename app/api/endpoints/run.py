@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.run import RunStartResponse
 from services.run_service import start_run_all_parallel
 
 router = APIRouter()
 
 
-@router.post("/run")
+@router.post("/run", response_model=RunStartResponse)
 async def post_run() -> dict:
     """Trigger processing all tickets in parallel (background thread)."""
     try:

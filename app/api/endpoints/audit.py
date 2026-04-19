@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.audit_api import TicketAuditDocument
 from services.audit_service import load_ticket_audit
 
 router = APIRouter()
 
 
-@router.get("/audit/{ticket_id}")
+@router.get("/audit/{ticket_id}", response_model=TicketAuditDocument)
 async def get_audit(ticket_id: str) -> dict:
     """Full audit JSON for one ticket."""
     try:

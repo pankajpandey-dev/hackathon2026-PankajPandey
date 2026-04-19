@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.tickets import TicketsResponse
 from services.audit_service import build_ticket_summaries
 
 router = APIRouter()
 
 
-@router.get("/tickets")
+@router.get("/tickets", response_model=TicketsResponse)
 async def get_tickets() -> dict:
     """Latest result per ticket from audit logs."""
     try:

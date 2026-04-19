@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.status import StatusResponse
 from services.run_service import get_status_payload
 
 router = APIRouter()
 
 
-@router.get("/status")
+@router.get("/status", response_model=StatusResponse)
 async def get_status() -> dict:
     """Live run progress and resolved / escalated / failed counts."""
     try:

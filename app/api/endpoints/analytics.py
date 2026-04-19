@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.analytics import AnalyticsResponse
 from services.audit_service import build_analytics
 
 router = APIRouter()
 
 
-@router.get("/analytics")
+@router.get("/analytics", response_model=AnalyticsResponse)
 async def get_analytics() -> dict:
     """Aggregate chart data from per-ticket audit logs."""
     try:

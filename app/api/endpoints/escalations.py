@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
+from schemas.escalations import EscalationsDocument
 from services.audit_service import load_escalations_file
 
 router = APIRouter()
 
 
-@router.get("/escalations")
+@router.get("/escalations", response_model=EscalationsDocument)
 async def get_escalations() -> dict:
     """Records from audit_logs/escalations.json."""
     try:
