@@ -22,6 +22,7 @@ from agents.tools import (
     search_knowledge_base,
     send_reply,
 )
+from schemas.tool_outputs import validate_tool_output
 from utils.load_data import ORDERS
 from services.ticket_service import latest_order_id_for_email
 from utils.datetime_utils import as_of_date_from_ticket_state
@@ -136,44 +137,44 @@ def _exec_tool(step: str, state: AgentState) -> tuple[dict, dict]:
 
     if step == "classify_ticket":
         inp = {"ticket_excerpt": ctx[:1200], "customer_email": email}
-        out = classify_ticket_text(ctx, email, ticket_tier=state.get("ticket_tier"))
-        return inp, out
-    if step == "search_knowledge_base":
+        raw = classify_ticket_text(ctx, email, ticket_tier=state.get("ticket_tier"))
+    elif step == "search_knowledge_base":
         q = kb_search_query(state)
         inp = {"query": q, "top_k": 6}
-        out = search_knowledge_base(q, top_k=6)
-        return inp, out
-    if step == "get_customer":
+        raw = search_knowledge_base(q, top_k=6)
+    elif step == "get_customer":
         inp = {"email": email}
-        out = get_customer(email=email) if email else {"found": False, "error": "no email"}
-        return inp, out
-    if step == "get_order":
+        raw = get_customer(email=email) if email else {"found": False, "error": "no email"}
+    elif step == "get_order":
         inp = {"order_id": oid}
-        out = get_order(oid) if oid else {"error": "missing order_id"}
-        return inp, out
-    if step == "get_product":
+        raw = get_order(oid) if oid else {"error": "missing order_id"}
+    elif step == "get_product":
         pid = (state.get("product_id") or "").strip().upper()
         if not pid and oid in ORDERS:
             pid = ORDERS[oid]["product_id"]
         inp = {"product_id": pid}
-        out = get_product(pid) if pid else {"error": "missing product_id"}
-        return inp, out
-    if step == "check_refund":
+        raw = get_product(pid) if pid else {"error": "missing product_id"}
+    elif step == "check_refund":
         as_of = as_of_date_from_ticket_state(state)
         inp = {"order_id": oid, "as_of": str(as_of)}
-        out = check_refund_eligibility(oid, as_of=as_of) if oid else {"eligible": False, "reason": "missing order_id"}
-        return inp, out
-    if step == "issue_refund":
+        raw = (
+            check_refund_eligibility(oid, as_of=as_of)
+            if oid
+            else {"eligible": False, "reason": "missing order_id"}
+        )
+    elif step == "issue_refund":
         amt = float(ORDERS[oid]["amount"]) if oid in ORDERS else 0.0
         inp = {"order_id": oid, "amount": amt}
-        out = issue_refund(oid, amt) if oid else {"status": "error", "detail": "missing order_id"}
-        return inp, out
-    if step == "send_reply":
+        raw = issue_refund(oid, amt) if oid else {"status": "error", "detail": "missing order_id"}
+    elif step == "send_reply":
         body = (state.get("reply_draft") or "").strip() or generate_reply_message(state)
         inp = {"ticket_id": tid, "message": body[:2000]}
-        out = send_reply(tid, body)
-        return inp, out
-    raise ValueError(f"unknown tool {step}")
+        raw = send_reply(tid, body)
+    else:
+        raise ValueError(f"unknown tool {step}")
+
+    out = validate_tool_output(step, raw)
+    return inp, out
 
 
 def act(state: AgentState) -> AgentState:

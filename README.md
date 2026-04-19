@@ -12,8 +12,8 @@ An autonomous customer support resolution agent built with **LangGraph + Groq (L
 ## Quick start (local dashboard + API)
 
 ```bash
-git clone https://github.com/<your-username>/hackathon2026-<your-name>.git
-cd hackathon2026-<your-name>
+git clone https://github.com/pankajpandey-dev/hackathon2026-PankajPandey.git
+cd hackathon2026-PankajPandey
 
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -146,12 +146,6 @@ On **Render**, set `GROQ_API_KEY` (and any other variables) in the service **Env
 
 ---
 
-## Deploy (Render)
-
-This repo ships a **Dockerfile** and optional **`render.yaml`** Blueprint. Connect the GitHub repository in the [Render Dashboard](https://dashboard.render.com), deploy as a **Web Service** with Docker, and assign environment variables there. The container listens on port **8000**; Render maps it to HTTPS automatically.
-
----
-
 ## Audit output
 
 Every ticket produces `audit_logs/<ticket_id>.json`:
@@ -197,9 +191,3 @@ all_results = run_all_tickets(parallel=True, max_workers=6)
 ```
 
 ---
-
-## Notes
-
-* No API keys are committed. Use `.env` locally (from `sample.env`) and the host’s environment in production.
-* The agent degrades gracefully when Groq is unavailable — rule-based fallbacks keep it running.
-* `issue_refund` is only called after `check_refund_eligibility` confirms `eligible: True`.
