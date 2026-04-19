@@ -15,7 +15,8 @@ RUN pip install --upgrade pip && pip install -r /work/requirements.txt
 COPY app/ /work/app/
 COPY data/ /work/data/
 COPY frontend/ /work/frontend/
-COPY audit_logs/ /work/audit_logs/
+# audit_logs/ is gitignored (generated at runtime); empty dir is enough for the API
+RUN mkdir -p /work/audit_logs
 
 EXPOSE 8000
 
